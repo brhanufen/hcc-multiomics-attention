@@ -672,7 +672,7 @@ add_paragraph(
     'TCGA LIHC data were obtained from the UCSC Xena platform (https://xenabrowser.net). '
     'External validation data were downloaded from GEO (GSE14520, GSE31384). '
     'All analysis scripts, model architectures, trained weights, and preprocessing pipelines '
-    'are available at [GitHub repository URL to be added prior to publication]. '
+    'are available at https://github.com/brhanufen/hcc-multiomics-attention. '
     'The repository includes instructions for reproducing all analyses.'
 )
 
