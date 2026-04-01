@@ -177,19 +177,19 @@ add_paragraph(
     '(C-index = 0.561, log-rank p = 3.10 \u00d7 10\u207b\u00b2). We then designed a multi-branch '
     'architecture with omics-specific encoders, multi-head attention fusion, and Cox partial likelihood '
     'training, optimized via Bayesian hyperparameter search (100 Optuna trials). In 5-fold stratified '
-    'cross-validation, our attention model achieved a mean C-index of 0.751 \u00b1 0.030, substantially '
-    'outperforming the autoencoder baseline (0.561), an AUTOSurv-like benchmark (0.697), and a '
-    'clinical-only model (0.637). Branch dropout enabled single-omics inference; external validation '
+    'cross-validation with nested feature selection (no data leakage), our attention model achieved a '
+    'mean C-index of 0.683 \u00b1 0.039, outperforming the autoencoder baseline (0.561) and '
+    'clinical-only model (0.637), and performing similarly to an AUTOSurv-like benchmark (0.697). Branch dropout enabled single-omics inference; external validation '
     'on the real GSE14520 cohort (n=221, mRNA) achieved a C-index of 0.637 (p = 0.004), comparable to '
     'Chaudhary et al.\u2019s reported 0.67 on the same data. Integrated gradients and attention weights '
-    'identified biologically plausible features, including cell cycle genes (CCNA2, PLK1), Wnt pathway '
-    'components (FZD7), and high-confidence biomarker candidates stable across all cross-validation '
-    'folds (PZP, SGCB, CD300LG, ZNF831 for mRNA; 12 miRNAs; 6 CpG sites). Differential expression '
-    'analysis between model-defined risk groups identified 381 significant genes (Bonferroni p < 0.05), '
-    'with top upregulated genes including G6PD, CBX2, CEP55, KIF2C, and PLK1. Multivariable Cox '
-    'regression confirmed that the model-derived risk score adds significant independent prognostic '
-    'value beyond clinical variables (likelihood ratio test p < 10\u207b\u00b9\u2070\u2070; '
-    'NRI = 0.398), with consistent performance across all clinical subgroups. This framework provides '
+    'highlighted features with prior links to HCC biology, including cell cycle genes (CCNA2, PLK1) '
+    'and a Wnt pathway component (FZD7), along with candidate biomarkers stable across all '
+    'cross-validation folds (PZP, SGCB, CD300LG, ZNF831 for mRNA; 12 miRNAs; 6 CpG sites). '
+    'Differential expression analysis between model-defined risk groups identified 381 significant '
+    'genes (Bonferroni p < 0.05), though this analysis is partly circular. Multivariable Cox '
+    'regression indicated that the model-derived risk score adds prognostic value '
+    'beyond clinical variables, with consistent performance across clinical subgroups, though '
+    'clinical integration metrics were evaluated on training data. This framework provides '
     'a transparent, biologically grounded approach to multi-omics prognostication in HCC.'
 )
 
@@ -298,8 +298,9 @@ add_paragraph(
 
 add_paragraph(
     'For the attention-based model (Aim 2), additional survival-association filtering was performed '
-    'using Spearman correlation between feature values and a risk proxy (event/time), selecting the '
-    'top 1,000 mRNA genes, 300 miRNAs, and 1,000 CpG sites.'
+    'within each cross-validation fold using only training data, to avoid information leakage. '
+    'Spearman correlation between feature values and a risk proxy (event/time) was computed on '
+    'the training set, selecting the top 1,000 mRNA genes, 300 miRNAs, and 1,000 CpG sites per fold.'
 )
 
 doc.add_heading('2.3. Aim 1: Autoencoder Baseline', level=2)
@@ -406,14 +407,14 @@ doc.add_heading('3.2. Aim 2: Attention-Based Model Performance', level=2)
 
 doc.add_heading('3.2.1. Internal Validation', level=3)
 add_paragraph(
-    'The attention-based multi-branch model substantially outperformed all baselines in 5-fold '
-    'stratified cross-validation.'
+    'The attention-based multi-branch model outperformed the autoencoder and clinical-only baselines '
+    'in 5-fold stratified cross-validation and performed comparably to the AUTOSurv-like benchmark.'
 )
 
 add_table(
     ['Model', 'C-index (mean \u00b1 SD)'],
     [
-        ['Attention model (proposed)', '0.751 \u00b1 0.030'],
+        ['Attention model (proposed)', '0.683 \u00b1 0.039'],
         ['AUTOSurv-like baseline', '0.697'],
         ['Clinical only', '0.637'],
         ['Autoencoder (Aim 1)', '0.561'],
@@ -424,12 +425,12 @@ add_table(
 add_table(
     ['Fold', 'C-index', 'Val. N', 'Events', 'Epochs'],
     [
-        ['1', '0.780', '72', '25', '30'],
-        ['2', '0.788', '72', '25', '31'],
-        ['3', '0.732', '72', '25', '26'],
-        ['4', '0.708', '71', '26', '16'],
-        ['5', '0.747', '71', '26', '23'],
-        ['Mean', '0.751 \u00b1 0.030', '', '', ''],
+        ['1', '0.712', '72', '25', '36'],
+        ['2', '0.687', '72', '25', '32'],
+        ['3', '0.707', '72', '25', '16'],
+        ['4', '0.606', '71', '26', '16'],
+        ['5', '0.702', '71', '26', '25'],
+        ['Mean', '0.683 \u00b1 0.039', '', '', ''],
     ],
     caption='Table 3. 5-Fold Cross-Validation Results'
 )
@@ -461,7 +462,7 @@ add_paragraph(
 add_figure('aim2_feature_importance.png',
            'Figure 6. Feature importance (integrated gradients) for top 20 features per omics layer.')
 
-doc.add_heading('3.2.4. External Validation', level=3)
+doc.add_heading('3.2.4. External Validation on Independent Cohorts', level=3)
 
 add_table(
     ['Cohort', 'n', 'Omics', 'Data Source', 'Our C-index', 'Chaudhary C-index', 'Log-rank p'],
@@ -469,12 +470,12 @@ add_table(
         ['NCI (GSE14520)', '221', 'mRNA', 'Real (GEO)', '0.637', '0.67', '0.004'],
         ['Chinese (GSE31384)', '166', 'miRNA', 'Real (GEO)', '0.471*', '0.69', '0.276'],
     ],
-    caption='Table 4. External Validation on Real Independent Cohorts'
+    caption='Table 4. External Validation on Independent Cohorts (Real GEO Data)'
 )
 
 add_paragraph(
     '*GSE31384 miRNA probe IDs could not be mapped to MIMAT accessions used by the model; '
-    'result reflects PCA-projected features and should be interpreted with caution.',
+    'this result is inconclusive and should not be considered a valid external test.',
     italic=True
 )
 
@@ -482,8 +483,11 @@ add_paragraph(
     'On the NCI cohort (GSE14520), the attention model achieved a C-index of 0.637 with significant '
     'survival separation (log-rank p = 0.004), comparable to Chaudhary et al.\u2019s reported 0.67 on '
     'the same cohort. Gene-level alignment was possible for 661 of 1,000 model features via GPL3921 '
-    'probe-to-gene annotation. The GSE31384 miRNA cohort could not be properly aligned due to '
-    'incompatible probe identifiers (numeric IDs vs. MIMAT accessions), precluding meaningful evaluation.'
+    'probe-to-gene annotation. This represents the only successful external validation in this study. '
+    'The GSE31384 miRNA cohort could not be meaningfully evaluated due to incompatible probe '
+    'identifiers (numeric platform IDs vs. MIMAT accessions); the reported C-index of 0.471 is '
+    'therefore inconclusive and should not be interpreted as evidence for or against model '
+    'generalizability in miRNA-only settings.'
 )
 
 add_figure('aim2_real_external_km.png',
@@ -512,8 +516,9 @@ doc.add_heading('3.3.2. Differential Expression and Concordance', level=3)
 add_paragraph(
     'Between model-defined risk groups, 381 genes were differentially expressed at Bonferroni-corrected '
     'p < 0.05 out of 1,000 tested. Top upregulated genes in the high-risk group included G6PD, CBX2, '
-    'CEP55, KIF2C, PLK1, TRIP13, MYBL2, and DLGAP5\u2014genes with well-established roles in cell '
-    'cycle progression and poor HCC prognosis. The Jaccard index between top 200 attention-derived and '
+    'CEP55, KIF2C, PLK1, TRIP13, MYBL2, and DLGAP5\u2014genes previously implicated in cell '
+    'cycle progression and HCC prognosis in independent studies, though we note the DE analysis '
+    'is partly circular as the risk groups were defined by the model trained on the same data. The Jaccard index between top 200 attention-derived and '
     'top 200 DE genes was 0.064 (18 overlapping genes). Spearman correlation between feature importance '
     'and |log2FC| was \u03c1 = \u22120.25 (p = 0.012), indicating the attention model captures '
     'prognostic features beyond simple differential expression.'
@@ -537,7 +542,7 @@ add_table(
 
 add_paragraph(
     'Note: These C-indices are computed on the full training data and reflect the model\u2019s fit rather '
-    'than generalization performance; the cross-validated C-index of 0.751 is the appropriate estimate '
+    'than generalization performance; the nested cross-validated C-index of 0.683 is the appropriate estimate '
     'of out-of-sample discrimination. Nevertheless, multivariable Cox regression on the full data '
     'confirmed that the risk score was the dominant predictor (HR = 2.26, p = 3.97 \u00d7 10\u207b\u2076\u00b9), '
     'while clinical variables did not reach significance. The likelihood ratio test confirmed '
@@ -550,10 +555,13 @@ add_figure('aim3_forest_plot.png',
 
 doc.add_heading('3.3.4. Subgroup Analysis', level=3)
 add_paragraph(
-    'The attention model maintained high discriminative ability across all clinical subgroups: '
-    'Early stage (I\u2013II, n=249, C-index = 0.993), Late stage (III\u2013IV, n=86, C-index = 0.976), '
-    'Male (n=242, C-index = 0.992), Female (n=116, C-index = 0.984), Younger (n=186, C-index = 0.990), '
-    'Older (n=172, C-index = 0.990). All subgroup log-rank p-values were < 10\u207b\u2074.'
+    'To assess whether the model\u2019s prognostic value is consistent across clinical subgroups, '
+    'we stratified patients by stage, gender, and age. The risk score significantly separated '
+    'high- and low-risk patients in all subgroups tested (all log-rank p < 10\u207b\u2074), '
+    'including early-stage (I\u2013II, n=249), late-stage (III\u2013IV, n=86), male (n=242), '
+    'female (n=116), younger (n=186), and older (n=172) patients. We note that these subgroup '
+    'analyses were performed on the full training data and therefore reflect model fit; '
+    'subgroup-level generalization should be confirmed in independent cohorts.'
 )
 
 add_figure('aim3_subgroup_analysis.png',
@@ -562,8 +570,9 @@ add_figure('aim3_subgroup_analysis.png',
 doc.add_heading('3.3.5. Stability of Interpretability', level=3)
 add_paragraph(
     'Kendall\u2019s W across 5 CV folds was 0.200 (mRNA), 0.180 (miRNA), and 0.233 (methylation), '
-    'indicating low-to-moderate ranking agreement (W < 0.3). High-confidence biomarker candidates (consistently top 100 '
-    'across all 5 folds): 4 mRNA genes (PZP, SGCB, CD300LG, ZNF831), 12 miRNAs, and 6 CpG sites.'
+    'indicating low-to-moderate ranking agreement (W < 0.3), consistent with the expected variability '
+    'of deep learning models in limited-sample regimes. Candidate features that remained in the top 100 '
+    'across all 5 folds included 4 mRNA genes (PZP, SGCB, CD300LG, ZNF831), 12 miRNAs, and 6 CpG sites.'
 )
 
 add_table(
@@ -584,9 +593,15 @@ add_table(
         ['Methylation', 'cg08979352', '5/5'],
         ['Methylation', 'cg15565032', '5/5'],
         ['Methylation', 'cg09273054', '5/5'],
-        ['Methylation', 'rs4331560', '5/5'],
+        ['Methylation', 'rs4331560*', '5/5'],
     ],
-    caption='Table 6. High-Confidence Biomarker Candidates (Stable Across All CV Folds)'
+    caption='Table 6. Candidate Biomarkers With Consistent Rankings Across All CV Folds (Requiring Independent Validation)'
+)
+
+add_paragraph(
+    '*rs4331560 is an SNP probe included on the Illumina HumanMethylation450 array as a control; '
+    'its consistent ranking may reflect a genotype-survival association rather than an epigenetic signal.',
+    italic=True
 )
 
 # ================================================================
@@ -597,14 +612,14 @@ doc.add_heading('4. Discussion', level=1)
 add_paragraph(
     'In this study, we developed an interpretable, attention-based multi-branch deep learning '
     'framework for multi-omics survival prediction in hepatocellular carcinoma. Our approach '
-    'substantially outperforms the reproduced Chaudhary et al. autoencoder baseline (5-fold CV '
-    'C-index: 0.751 vs. 0.561) and an AUTOSurv-like benchmark (0.697), while providing transparent '
+    'outperforms the reproduced Chaudhary et al. autoencoder baseline (5-fold nested CV '
+    'C-index: 0.683 vs. 0.561) and performs comparably to an AUTOSurv-like benchmark (0.697), while providing transparent '
     'feature- and omics-level importance scores.'
 )
 
 add_paragraph(
     'Superior prognostic performance. The attention-based architecture achieved a mean CV C-index of '
-    '0.751, representing a 34% relative improvement over the autoencoder baseline. The multi-branch '
+    '0.683, representing a 22% relative improvement over the autoencoder baseline. The multi-branch '
     'design, which treats each omics layer independently before fusion, appears to better capture '
     'omics-specific prognostic signals than concatenation-based approaches.',
     bold=False
@@ -617,10 +632,12 @@ add_paragraph(
 )
 
 add_paragraph(
-    'Biologically plausible features. The model identified features with established links to HCC '
-    'biology: cell cycle regulators (CCNA2, PLK1, CEP55, KIF2C), Wnt pathway components (FZD7), '
-    'and well-known proliferation markers. The top DE genes between risk groups (G6PD, CBX2, CEP55, '
-    'PLK1, MYBL2) are established markers of aggressive HCC (Boyault et al. 2007; Hoshida et al. 2009).'
+    'Suggestive biological features. The model highlighted features with prior links to HCC '
+    'biology, including cell cycle regulators (CCNA2, PLK1, CEP55, KIF2C) and a Wnt pathway component '
+    '(FZD7). The top DE genes between risk groups (G6PD, CBX2, CEP55, PLK1, MYBL2) have been '
+    'implicated in aggressive HCC in prior studies (Boyault et al. 2007; Hoshida et al. 2009), '
+    'though the DE analysis is partly circular and formal pathway enrichment did not reach '
+    'statistical significance for most gene sets.'
 )
 
 add_paragraph(
@@ -636,7 +653,7 @@ add_paragraph(
     'properly evaluated due to incompatible probe identifiers. Validation on additional cohorts '
     '(LIRI-JP, E-TABM-36, Hawaiian) requires controlled-access data applications. Second, with '
     'only 358 patients, the full-data C-index (0.989) indicates overfitting; the cross-validated '
-    'C-index (0.751) provides a more realistic generalization estimate. Third, formal pathway '
+    'C-index (0.683) provides a more realistic generalization estimate. Third, formal pathway '
     'enrichment did not reach statistical significance for most pathways, likely due to the small '
     'feature space after survival-association filtering. Fourth, differential expression analysis '
     'between model-defined risk groups is partially circular, as the groups were defined by the '
@@ -644,9 +661,7 @@ add_paragraph(
     'rather than independently confirmatory. Fifth, the low Jaccard index (0.064) between '
     'attention-derived and DE-derived rankings suggests the model captures nonlinear prognostic '
     'features beyond simple differential expression, but further work is needed to determine '
-    'whether these represent genuine biological signals or model artifacts. Sixth, survival-association '
-    'feature pre-selection (Spearman filtering) was performed on the full dataset before '
-    'cross-validation splitting, which may introduce optimistic bias into the CV C-index estimate.'
+    'whether these represent genuine biological signals or model artifacts.'
 )
 
 # ================================================================
@@ -656,11 +671,16 @@ doc.add_heading('5. Conclusions', level=1)
 
 add_paragraph(
     'We present an interpretable, attention-based multi-branch deep learning model for multi-omics '
-    'survival prediction in HCC that substantially outperforms the Chaudhary et al. autoencoder '
-    'baseline and provides transparent feature- and omics-level importance scores. The model identifies '
-    'biologically plausible prognostic features, adds significant independent value beyond clinical '
-    'staging, and maintains robust performance across clinical subgroups. This framework advances the '
-    'goal of transparent, biologically grounded multi-omics integration for cancer prognosis.'
+    'survival prediction in hepatocellular carcinoma. In properly nested cross-validation without '
+    'feature selection leakage, the proposed architecture outperforms the Chaudhary et al. autoencoder '
+    'baseline and demonstrates '
+    'significant survival stratification in one independent external mRNA cohort. Attention weights reveal '
+    'balanced contributions from all three omics layers, and feature attribution identifies '
+    'prognostic markers with prior links to HCC biology, including cell cycle '
+    'regulators and a Wnt pathway component. The model-derived risk score adds independent prognostic '
+    'value beyond standard clinical variables, though further external validation is needed to '
+    'confirm generalizability. This framework advances the goal of transparent, biologically grounded '
+    'multi-omics integration for cancer prognosis.'
 )
 
 # ================================================================
