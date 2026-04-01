@@ -1,0 +1,19 @@
+# Large data files (users should regenerate via scripts)
+data/raw/
+data/external_real/
+data/processed/*.csv
+data/external/*.pkl
+data/processed/*.pkl
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
